@@ -153,7 +153,10 @@ const Dashboard = () => {
                         <div className="relative group/info">
                             <Info size={14} className="text-zinc-700 hover:text-zinc-400 cursor-help transition-colors" />
                             <div className="absolute right-0 top-6 mt-2 w-64 p-5 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all z-50 pointer-events-none">
-                                <p className="text-[10px] font-black text-white uppercase tracking-widest mb-2 italic">Git Score Breakdown</p>
+                                <p className="text-[10px] font-black text-white uppercase tracking-widest mb-2 ">What is Git Score?</p>
+                                <p className="text-[10px] text-zinc-500 mb-4 leading-relaxed font-medium">
+            Git Score is a 100-point "Dev Cred" summary that rewards you for writing clean documentation (Documentation), coding consistently throughout the year (Commit Consistency), using a variety of languages (Tech Diversity), and building projects that people actually star (Repo Impact).
+        </p>
                                 <div className="space-y-3 border-t border-zinc-800 pt-3">
                                     <SummaryLine label="Documentation" weight="35%" user={data?.stats?.audit?.doc} />
                                     <SummaryLine label="Commit Consistency" weight="30%" user={data?.stats?.audit?.consistency} />

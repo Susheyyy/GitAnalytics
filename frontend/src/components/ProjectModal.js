@@ -1,25 +1,50 @@
 import React from 'react';
-import { 
-  X, Star, GitFork, Shield, Globe, FileText, 
-  Terminal, CheckCircle2, AlertCircle, Cpu 
-} from 'lucide-react';
+import { X, Star, GitFork, Shield, Globe, FileText, Cpu, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const ProjectModal = ({ repo, onClose }) => {
   if (!repo) return null;
 
+  // --- CLEAN PARSING LOGIC ---
+  const processAIResponse = () => {
+    const raw = repo.ai_analysis || "";
+    // Remove all Markdown bolding (**) and intro filler
+    const clean = raw.replace(/\*\*/g, '').replace(/^Here's an analysis.*?:/i, '').trim();
+
+    let summary = "Analyzing core logic...";
+    let improvement = "Documentation expansion recommended.";
+
+    if (clean.toUpperCase().includes('IMPROVEMENT:')) {
+      const parts = clean.split(/IMPROVEMENT:/i);
+      summary = parts[0].replace(/SUMMARY:/i, '').trim();
+      improvement = parts[1].trim();
+    } else {
+      summary = clean;
+    }
+
+    return { summary, improvement };
+  };
+
+  const { summary, improvement } = processAIResponse();
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-zinc-950 border border-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+      {/* Container with Max Height and Scroll */}
+      <div className="bg-zinc-950 border border-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl relative flex flex-col max-h-[90vh]">
         
-        {/* CLOSE BUTTON */}
-        <button onClick={onClose} className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors">
-          <X size={24} />
+        {/* Fixed Header / Close Button */}
+        <button 
+          onClick={onClose} 
+          className="absolute top-6 right-6 text-zinc-500 hover:text-white transition-colors z-[110] p-2 bg-zinc-900/50 rounded-full"
+        >
+          <X size={20} />
         </button>
 
-        <div className="p-8">
+        {/* Scrollable Content Area */}
+        <div className="overflow-y-auto p-8 custom-scrollbar">
+          
           {/* HEADER */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-black text-white tracking-tighter mb-2 italic">
+          <div className="mb-8 pr-10">
+            <h2 className="text-3xl font-black text-white tracking-tighter mb-4 italic uppercase leading-none">
               {repo.name}
             </h2>
             <div className="flex flex-wrap gap-3">
@@ -35,39 +60,46 @@ const ProjectModal = ({ repo, onClose }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* LEFT: AI INSIGHT (The Glowing Card) */}
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-              <div className="relative bg-zinc-900 border border-zinc-800 p-5 rounded-2xl h-full">
-                <div className="flex items-center gap-2 text-emerald-500 mb-3">
-                  <Cpu size={16} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">AI Prediction</span>
+            
+            {/* AI INSIGHT CARD */}
+            <div className="relative group md:col-span-2 lg:col-span-1">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-2xl blur opacity-10 group-hover:opacity-25 transition duration-1000"></div>
+              <div className="relative bg-zinc-900 border border-zinc-800 p-6 rounded-2xl h-full flex flex-col">
+                <div className="flex items-center gap-2 text-emerald-500 mb-4">
+                  <Cpu size={16} className="animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">AI Insight</span>
                 </div>
-                <p className="text-xs text-zinc-300 leading-relaxed font-medium italic">
-                  {repo.ai_analysis || "Analysing core logic and dependencies..."}
-                </p>
+                
+                <div className="space-y-6">
+                  <div>
+                    <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest block mb-2 italic">Core Purpose</span>
+                    <p className="text-xs text-zinc-200 leading-relaxed font-medium">
+                      {summary}
+                    </p>
+                  </div>
+                  
+                  <div className="pt-5 border-t border-zinc-800">
+                    <span className="text-[9px] font-black text-emerald-500/60 uppercase tracking-widest mb-2 italic flex items-center gap-2">
+                       <FileText size={10} /> Actionable Advice
+                    </span>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed font-medium italic">
+                      {improvement}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* RIGHT: HEALTH CHECK & STATS */}
+            {/* HEALTH & STATS */}
             <div className="space-y-4">
-              <div className="bg-zinc-900/50 border border-zinc-800/50 p-5 rounded-2xl">
-                <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest block mb-3">STATS</span>
-                <div className="space-y-2">
-                  <StatusItem 
-                    label="README"  
-                    status={repo.has_readme} 
-                    message={repo.has_readme ? "Optimized" : "Missing Details"} 
-                  />
-                  <StatusItem 
-                    label="Deployment" 
-                    status={repo.is_deployed} 
-                    message={repo.is_deployed ? "Live" : "Local Only"} 
-                  />
+              <div className="bg-zinc-900/50 border border-zinc-800/50 p-6 rounded-2xl">
+                <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest block mb-4 italic">Health Check</span>
+                <div className="space-y-3">
+                  <StatusItem label="README" status={repo.has_readme} message={repo.has_readme ? "Optimized" : "Missing"} />
+                  <StatusItem label="Deployment" status={repo.is_deployed} message={repo.is_deployed ? "Live" : "Local"} />
                 </div>
               </div>
 
-              {/* REPO STATS GRID */}
               <div className="grid grid-cols-3 gap-2">
                  <SmallStat label="Commits" value={repo.stats?.commits} />
                  <SmallStat label="Branches" value={repo.stats?.branches} />
@@ -76,16 +108,18 @@ const ProjectModal = ({ repo, onClose }) => {
             </div>
           </div>
 
-          {/* INTERACTIVE TAGS */}
-          <div className="mt-8 pt-6 border-t border-zinc-900">
-            <div className="flex flex-wrap gap-2">
-              {repo.tags?.map(tag => (
-                <span key={tag} className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-bold text-zinc-500 hover:text-emerald-400 hover:border-emerald-500/30 cursor-default transition-all">
-                  #{tag}
-                </span>
-              ))}
+          {/* TAGS */}
+          {repo.tags && repo.tags.length > 0 && (
+            <div className="mt-8 pt-6 border-t border-zinc-900">
+                <div className="flex flex-wrap gap-2">
+                {repo.tags.map(tag => (
+                    <span key={tag} className="px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-lg text-[10px] font-bold text-zinc-500">
+                    #{tag}
+                    </span>
+                ))}
+                </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -100,9 +134,9 @@ const Badge = ({ icon, label, color }) => (
 
 const StatusItem = ({ label, status, message }) => (
   <div className="flex items-center justify-between">
-    <span className="text-[11px] font-bold text-zinc-400">{label}</span>
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{message}</span>
+    <span className="text-[11px] font-bold text-zinc-400 italic">{label}</span>
+    <div className="flex items-center gap-2">
+      <span className="text-[9px] font-black text-zinc-500 uppercase tracking-tighter">{message}</span>
       {status ? <CheckCircle2 size={14} className="text-emerald-500" /> : <AlertCircle size={14} className="text-rose-500" />}
     </div>
   </div>
@@ -110,7 +144,7 @@ const StatusItem = ({ label, status, message }) => (
 
 const SmallStat = ({ label, value }) => (
   <div className="bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl text-center">
-    <div className="text-[9px] font-black uppercase text-zinc-600 mb-1">{label}</div>
+    <div className="text-[8px] font-black uppercase text-zinc-600 mb-1">{label}</div>
     <div className="text-sm font-bold text-white tracking-tight">{value || 0}</div>
   </div>
 );
