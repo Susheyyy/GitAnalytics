@@ -7,9 +7,7 @@ analysis_bp = Blueprint('analysis', __name__)
 
 @analysis_bp.route('/analyze/<username>', methods=['GET'])
 def get_user_analysis(username):
-    """
-    Main profile analysis endpoint.
-    """
+    """Main profile analysis endpoint."""
     results = fetch_github_profile(username)
     if not results:
         return jsonify({"error": "User not found"}), 404
@@ -17,9 +15,7 @@ def get_user_analysis(username):
 
 @analysis_bp.route('/analyze-repo/<username>/<repo_name>', methods=['GET'])
 def get_repo_deep_dive(username, repo_name):
-    """
-    Deep Dive endpoint: Fetches repo metadata + AI analysis.
-    """
+    """Deep Dive endpoint: Fetches repo metadata + AI analysis."""
     repo_data = fetch_repo_details(username, repo_name)
     if not repo_data:
         print(f"DEBUG: Repo details not found for {repo_name}")
@@ -33,13 +29,10 @@ def get_repo_deep_dive(username, repo_name):
         repo_data['ai_analysis'] = ai_insight
         print("DEBUG: AI analysis successful.")
     except Exception as e:
-
         print("--- AI SERVICE ERROR ---")
         print(f"Error Type: {type(e).__name__}")
         print(f"Message: {str(e)}")
         traceback.print_exc() 
-        print("-------------------------")
-        
         repo_data['ai_analysis'] = "AI analysis currently unavailable (Check server logs for details)."
 
     return jsonify(repo_data), 200
