@@ -35,11 +35,9 @@ const Dashboard = () => {
   const handleSearch = async () => {
     if (!username) return;
     setLoading(true);
-    setData(null); // Clear previous results to prevent UI ghosting
+    setData(null); 
     try {
       const result = await fetchAnalysis(username);
-      
-      // Use logical OR checks to ensure the profile object is actually present
       if (result && (result.profile || result.stats)) {
         setData(result);
         console.log("Analysis Successful for:", result.profile?.username);
@@ -67,7 +65,7 @@ const Dashboard = () => {
     setDeepDiveLoading(false);
   };
 
-  // Safely map language data for the chart, handling potential nulls
+  // Safe mapping for Recharts PieChart
   const chartData = data?.stats?.languages 
     ? Object.entries(data.stats.languages).map(([name, value]) => ({ name, value })) 
     : [];
@@ -110,7 +108,6 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            {/* SIDEBAR */}
             <div className="lg:col-span-4">
               <div className="bg-zinc-950 border border-zinc-800/50 p-8 rounded-3xl sticky top-8 shadow-2xl">
                 <img 
@@ -149,7 +146,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* MAIN DASHBOARD CONTENT */}
             <div className="lg:col-span-8 space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                  <div className="bg-zinc-950 border border-zinc-800/50 p-6 rounded-3xl flex flex-col gap-1 relative transition-all hover:bg-zinc-900/40 group/score text-center">
@@ -175,7 +171,50 @@ const Dashboard = () => {
                  <StatCard icon={<Activity size={18}/>} label="Public Repos" value={data?.stats?.repo_count || 0} color="text-blue-500" />
               </div>
 
-              {/* REPO GRID */}
+              {/* PIE CHART SECTION */}
+              {chartData.length > 0 && (
+                <div className="bg-zinc-950 border border-zinc-800/50 p-8 rounded-3xl shadow-xl">
+                   <h3 className="text-xs font-black text-zinc-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-3 italic">
+                      <Hexagon size={16} className="text-emerald-500"/> Tech Stack Distribution
+                   </h3>
+                   <div className="h-[300px] w-full">
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie 
+                            data={chartData} 
+                            innerRadius={80} 
+                            outerRadius={110} 
+                            paddingAngle={8} 
+                            dataKey="value" 
+                            stroke="none"
+                          >
+                            {chartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: '#09090b', 
+                              border: '1px solid #27272a', 
+                              borderRadius: '16px',
+                              fontSize: '10px',
+                              fontWeight: 'bold',
+                              textTransform: 'uppercase'
+                            }} 
+                          />
+                          <Legend 
+                            verticalAlign="middle" 
+                            align="right" 
+                            layout="vertical" 
+                            formatter={(value) => <span className="text-zinc-400 text-xs font-bold ml-2 uppercase tracking-tight italic">{value}</span>}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                   </div>
+                </div>
+              )}
+
+              {/* REPOSITORY PORTFOLIO */}
               <div className="bg-zinc-950 border border-zinc-800/50 p-8 rounded-3xl shadow-xl">
                 <h3 className="text-xs font-black text-zinc-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-3 italic justify-center">
                     <FolderGit2 size={16} className="text-blue-500"/> Repository Portfolio
@@ -192,7 +231,6 @@ const Dashboard = () => {
                                 <ExternalLink size={14} className="text-zinc-800 group-hover:text-white" />
                             </div>
                             <h4 className="text-sm font-bold text-white mb-2 truncate italic">{project.name}</h4>
-                            {/* Handling NaN or null descriptions */}
                             <p className="text-zinc-500 text-[11px] line-clamp-2 mb-4 h-8 font-medium leading-relaxed">
                                 {project.description && project.description !== "NaN" ? project.description : "No description provided."}
                             </p>
