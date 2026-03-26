@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from models import db
 from routes.analysis import analysis_bp
 
-# Import the logic from your services
 from services.github_service import fetch_github_profile
 from services.ai_service import generate_tech_roadmap
 
@@ -21,19 +20,16 @@ def create_app():
 
     db.init_app(app)
 
-    # Register existing Blueprint
     app.register_blueprint(analysis_bp, url_prefix='/api')
 
-    # --- NEW ROADMAP ROUTE ---
     @app.route('/api/roadmap/<username>', methods=['GET'])
     def get_roadmap(username):
-        # 1. Fetch user stats using your existing service
+       
         user_data = fetch_github_profile(username) 
         
         if not user_data:
             return jsonify({"error": "User not found or GitHub API limit reached"}), 404
 
-        # 2. Call the LLM service with the dynamic data
         roadmap_text = generate_tech_roadmap(
             username=username,
             top_lang=user_data['profile']['top_lang'],

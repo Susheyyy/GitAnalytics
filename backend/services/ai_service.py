@@ -48,7 +48,7 @@ def generate_tech_roadmap(username, top_lang, projects):
 
     try:
         genai.configure(api_key=api_key)
-        # Reusing your model selection logic
+        
         available_models = [
             m.name for m in genai.list_models() 
             if 'generateContent' in m.supported_generation_methods
@@ -56,7 +56,6 @@ def generate_tech_roadmap(username, top_lang, projects):
         selected_model = next((m for m in available_models if "flash" in m), available_models[0])
         model = genai.GenerativeModel(selected_model)
 
-        # The Career Coach Prompt
         project_names = [p['name'] for p in projects[:5]]
         prompt = f"""
         User: {username}
