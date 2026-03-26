@@ -34,7 +34,7 @@ const DevCard = ({ data, cardRef }) => {
             </div>
             
             <div className="flex flex-col gap-1">
-              <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-tight text-white">
+              <h2 className="text-3xl font-black uppercase tracking-tighter leading-tight text-white">
                 {profile.name}
               </h2>
               <div className="flex items-center gap-3">
@@ -48,25 +48,24 @@ const DevCard = ({ data, cardRef }) => {
             </div>
           </div>
 
-          {/* GLOBAL CRED - Fixed width and simplified padding to prevent overlap */}
+          {/* GIT SCORE */}
           <div className="bg-zinc-900/40 border border-zinc-800 p-4 rounded-[28px] w-[140px] text-center backdrop-blur-md">
              <div className="flex items-center justify-center gap-1.5 mb-1">
                 <ShieldCheck size={10} className="text-emerald-500 opacity-60" />
-                <span className="text-[7px] font-black text-zinc-500 uppercase tracking-[0.3em] italic">Global Cred</span>
+                <span className="text-[7px] font-black text-zinc-500 uppercase tracking-[0.3em] ">GIT SCORE</span>
              </div>
-             <span className="text-4xl font-black italic text-white tracking-tighter leading-none">{stats.git_score}%</span>
+             <span className="text-4xl font-black text-white tracking-tighter leading-none">{stats.git_score}</span>
           </div>
         </div>
 
         {/* --- MAIN BODY SECTION --- */}
-        {/* Reduced gap and vertical margins to pull the Audit closer to the top info */}
         <div className="grid grid-cols-12 gap-5 relative z-10 mt-2">
           
           {/* Professional Audit */}
           <div className="col-span-7 bg-white/[0.02] border border-white/[0.04] p-5 rounded-[24px]">
             <div className="flex items-center gap-3 mb-4">
                <ShieldCheck size={14} className="text-emerald-500" />
-               <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] italic">Professional Audit</span>
+               <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] ">GIT SCORE BREAKDOWN</span>
             </div>
             <div className="space-y-3">
               <MiniBar label="DOC" value={stats.audit?.doc} weight={20} color="bg-emerald-500" />
@@ -80,7 +79,7 @@ const DevCard = ({ data, cardRef }) => {
           <div className="col-span-5 bg-white/[0.02] border border-white/[0.04] p-5 rounded-[24px] flex flex-col justify-center">
               <div className="flex items-center gap-3 mb-4">
                   <Hexagon size={14} className="text-blue-400" />
-                  <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] italic">Stack Distribution</span>
+                  <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Lang Distribution</span>
               </div>
               <div className="flex gap-1 h-1.5 rounded-full overflow-hidden bg-black mb-4">
                   {topLanguages.map(([lang, val], i) => (
@@ -126,12 +125,11 @@ const DevCard = ({ data, cardRef }) => {
     <span className="text-[7px] font-black uppercase tracking-[0.4em] italic leading-none mt-1">Verified</span>
   </div>
   
-  {/* Increased padding and size for better scan-ability */}
   <div className="p-2 bg-white rounded-xl shadow-lg">
       <img 
         src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=000000&margin=2&data=https://github.com/${profile.username}`} 
         alt="QR" 
-        className="w-14 h-14" // Increased from w-10 h-10
+        className="w-14 h-14" 
       />
   </div>
 </div>

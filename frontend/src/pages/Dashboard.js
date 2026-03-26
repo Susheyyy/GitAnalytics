@@ -31,7 +31,7 @@ const SummaryLine = ({ label, weight, user }) => (
     </div>
 );
 
-// --- REUSABLE STATCARD (Centered Title Logic with Absolute Pinned Icon) ---
+// --- REUSABLE STATCARD  ---
 const StatCard = ({ icon, label, value, color }) => (
   <div className="bg-zinc-950 border border-zinc-800/50 p-6 rounded-[32px] flex flex-col hover:bg-zinc-900/40 transition-all shadow-lg min-h-[160px] relative group">
     <div className="flex items-center justify-center relative mb-4 min-h-[24px]">
@@ -41,7 +41,7 @@ const StatCard = ({ icon, label, value, color }) => (
       <span className="text-[10px] font-black uppercase text-zinc-500 tracking-widest">{label}</span>
     </div>
     <div className="flex-1 flex items-center justify-center">
-      <div className="text-5xl font-black text-white tracking-tighter italic">{value}</div>
+      <div className="text-5xl font-black text-white tracking-tighter">{value}</div>
     </div>
   </div>
 );
@@ -54,7 +54,6 @@ const Dashboard = () => {
   const [deepDiveLoading, setDeepDiveLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // AI Roadmap State
   const [roadmap, setRoadmap] = useState(null);
   const [roadmapLoading, setRoadmapLoading] = useState(false);
   
@@ -132,7 +131,7 @@ const Dashboard = () => {
     </Link>
   </div>
       
-      {/* 1. TOP RIGHT ACTION GROUP (Absolute - Scrolls with page) */}
+      {/* 1. TOP RIGHT ACTION GROUP  */}
       {data && (
         <div className="absolute top-8 right-8 z-[120] flex items-center gap-3">
           
@@ -165,10 +164,8 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Hidden DevCard for PNG generation */}
       <DevCard data={data} cardRef={cardRef} />
 
-      {/* Loading Overlay for Deep Dive */}
       {deepDiveLoading && (
         <div className="fixed inset-0 z-[150] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center">
             <Loader2 className="text-emerald-500 animate-spin mb-4" size={40} />
@@ -179,7 +176,7 @@ const Dashboard = () => {
       {/* Hero Section */}
       <div className={`flex flex-col items-center transition-all duration-1000 px-4 ${data ? 'pt-8 pb-10' : 'pt-32 pb-20'}`}>
         <div className="text-center mb-8">
-            <h1 className="text-4xl font-black tracking-tighter text-white flex items-center gap-3 justify-center italic">
+            <h1 className="text-4xl font-black tracking-tighter text-white flex items-center gap-3 justify-center">
                 <Github size={40} /> GitAnalytics
             </h1>
             <p className="text-zinc-500 mt-2 font-medium tracking-wide italic text-sm">Analyze your Github profile in seconds.</p>
@@ -209,7 +206,7 @@ const Dashboard = () => {
             
             <div className="bg-zinc-950 border border-zinc-800/50 p-8 rounded-3xl sticky top-8 shadow-2xl">
               <img src={data.profile.avatar} className="w-32 h-32 rounded-3xl border border-zinc-800 mb-6 object-cover shadow-2xl" alt="avatar" />
-              <h2 className="text-2xl font-black text-white italic tracking-tight leading-none uppercase">{data.profile.name}</h2>
+              <h2 className="text-2xl font-black text-white tracking-tight leading-none uppercase">{data.profile.name}</h2>
               <p className="text-zinc-500 text-sm mt-2">@{data.profile.username}</p>
               <p className="text-zinc-400 text-sm leading-relaxed mt-6 mb-8 font-medium italic opacity-80 italic">"{data.profile.bio || "No bio available."}"</p>
               
@@ -224,10 +221,10 @@ const Dashboard = () => {
                   </div>
                   <div className="px-3 py-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20 flex items-center gap-2">
                     <Calendar size={12} className="text-blue-400" />
-                    <span className="text-[10px] text-blue-400 font-black uppercase italic tracking-widest">Born {new Date(data.profile.joined_at).getFullYear()}</span>
+                    <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Born {new Date(data.profile.joined_at).getFullYear()}</span>
                   </div>
                   <div className="px-3 py-1.5 bg-emerald-500/10 rounded-xl border border-emerald-500/20 flex items-center gap-2">
-                    <span className="text-[10px] text-emerald-500 font-black uppercase italic">{data.profile.top_lang}</span>
+                    <span className="text-[10px] text-emerald-500 font-black uppercase ">{data.profile.top_lang}</span>
                   </div>
                   <div className="px-3 py-1.5 bg-zinc-900/50 rounded-xl border border-zinc-800/50 flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -251,7 +248,10 @@ const Dashboard = () => {
                   <div className="absolute right-0 group/info">
                     <Info size={14} className="text-zinc-700 hover:text-zinc-400 cursor-help transition-colors" />
                     <div className="absolute right-0 top-8 w-64 p-5 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all z-50 text-left backdrop-blur-xl">
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest mb-3 italic">Audit Breakdown</p>
+                        <p className="text-[10px] font-black text-white uppercase tracking-widest mb-3">What is Git Score?</p>
+                         <p className="text-[10px] text-zinc-500 mb-4 leading-relaxed font-medium">
+            Git Score is a 100-point "Dev Cred" summary that rewards you for writing clean documentation (Documentation), coding consistently throughout the year (Commit Consistency), using a variety of languages (Tech Diversity), and building projects that people actually star (Repo Impact).
+        </p>
                         <div className="space-y-3 border-t border-zinc-800 pt-3">
                             <SummaryLine label="Documentation" weight="35%" user={data.stats.audit.doc} />
                             <SummaryLine label="Consistency" weight="30%" user={data.stats.audit.consistency} />
@@ -262,7 +262,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="flex-1 flex items-center justify-center">
-                  <div className="text-5xl font-black text-white italic tracking-tighter">{data.stats.git_score}%</div>
+                  <div className="text-5xl font-black text-white tracking-tighter">{data.stats.git_score}</div>
                 </div>
               </div>
 
@@ -286,8 +286,8 @@ const Dashboard = () => {
                     </button>
                 </div>
 
-                <h3 className="text-xs font-black text-zinc-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-3 italic">
-                    <Hexagon size={16} className="text-emerald-500"/> Tech Stack Distribution
+                <h3 className="text-xs font-black text-zinc-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-3 ">
+                    <Hexagon size={16} className="text-emerald-500"/> LANG Distribution
                 </h3>
 
                 {roadmap && (
@@ -315,7 +315,7 @@ const Dashboard = () => {
 
             {/* Repository Portfolio */}
             <div className="bg-zinc-950 border border-zinc-800/50 p-8 rounded-3xl shadow-xl">
-                <h3 className="text-xs font-black text-zinc-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-3 italic justify-center"><FolderGit2 size={16} className="text-blue-500"/> Repository Portfolio</h3>
+                <h3 className="text-xs font-black text-zinc-500 mb-8 uppercase tracking-[0.2em] flex items-center gap-3 justify-center"><FolderGit2 size={16} className="text-blue-500"/> Repository Portfolio</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {data.stats.all_projects.map((project) => (
                         <div 
@@ -327,8 +327,8 @@ const Dashboard = () => {
                                 <FolderGit2 size={18} className="text-zinc-600 group-hover:text-emerald-500 transition-colors" />
                                 <ExternalLink size={14} className="text-zinc-800 group-hover:text-white" />
                             </div>
-                            <h4 className="text-sm font-bold text-white mb-2 truncate italic">{project.name}</h4>
-                            <p className="text-zinc-500 text-[11px] line-clamp-2 mb-4 h-8 font-medium leading-relaxed italic">{project.description || "No description provided."}</p>
+                            <h4 className="text-sm font-bold text-white mb-2 truncate">{project.name}</h4>
+                            <p className="text-zinc-500 text-[11px] line-clamp-2 mb-4 h-8 font-medium leading-relaxed">{project.description || "No description provided."}</p>
                             <div className="mt-2 mb-6 px-3 py-2 bg-black/40 rounded-lg border border-zinc-800/50 flex items-center gap-2">
                                 <Clock size={12} className="text-emerald-500 shrink-0" />
                                 <span className="text-[10px] font-mono text-zinc-400 truncate uppercase italic">{project.last_update}</span>

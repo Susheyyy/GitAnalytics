@@ -4,17 +4,14 @@ import { X, Star, GitFork, Shield, Globe, FileText, Cpu, CheckCircle2, AlertCirc
 const ProjectModal = ({ repo, onClose }) => {
   if (!repo) return null;
 
-  // --- IMPROVED PARSING LOGIC ---
   const processAIResponse = () => {
     const raw = repo.ai_analysis || "";
-    // 1. Remove Markdown bold markers (**) and intro filler
-    const clean = raw.replace(/\*\*/g, '').replace(/^Here's an analysis.*?:/i, '').trim();
+        const clean = raw.replace(/\*\*/g, '').replace(/^Here's an analysis.*?:/i, '').trim();
 
     let summary = "Analyzing core logic...";
     let improvement = "Documentation expansion recommended.";
 
-    // 2. Flexible splitting based on common AI patterns
-    const splitPattern = /IMPROVEMENT:|2\.|README Improvement Suggestion:|Actionable Advice:/i;
+        const splitPattern = /IMPROVEMENT:|2\.|README Improvement Suggestion:|Actionable Advice:/i;
     
     if (splitPattern.test(clean)) {
       const parts = clean.split(splitPattern);
@@ -31,8 +28,7 @@ const ProjectModal = ({ repo, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center px-4 py-8 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-      {/* Container with Max Height and Scroll Fix */}
-      <div className="bg-zinc-950 border border-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl relative flex flex-col max-h-[90vh]">
+            <div className="bg-zinc-950 border border-zinc-800 w-full max-w-2xl rounded-3xl shadow-2xl relative flex flex-col max-h-[90vh]">
         
         <button 
             onClick={onClose} 
@@ -91,7 +87,7 @@ const ProjectModal = ({ repo, onClose }) => {
             {/* HEALTH & STATS */}
             <div className="space-y-4">
               <div className="bg-zinc-900/50 border border-zinc-800/50 p-6 rounded-2xl">
-                <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest block mb-4 italic text-left">Health Check</span>
+                <span className="text-[10px] font-black uppercase text-zinc-600 tracking-widest block mb-4 text-left">Project Vitals</span>
                 <div className="space-y-3">
                   <StatusItem label="README" status={repo?.has_readme} message={repo?.has_readme ? "Optimized" : "Missing"} />
                   <StatusItem label="Deployment" status={repo?.is_deployed} message={repo?.is_deployed ? "Live" : "Local"} />

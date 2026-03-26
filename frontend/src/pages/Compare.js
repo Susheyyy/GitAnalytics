@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { fetchAnalysis } from '../utils/api';
-import { GitCompare, Trophy, Star, Activity, Flame, ShieldCheck, ArrowLeft, Users } from 'lucide-react';
+import { GitCompare,  ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Compare = () => {
@@ -36,7 +36,7 @@ const Compare = () => {
 
   return (
     <div className="min-h-screen bg-black text-white p-8">
-      {/* Back Button */}
+     
       <Link to="/" className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors mb-12 uppercase text-[10px] font-black tracking-[0.2em] italic">
         <ArrowLeft size={16} /> Back to Dashboard
       </Link>
@@ -46,8 +46,7 @@ const Compare = () => {
           <GitCompare size={40} className="text-emerald-500" /> VERSUS
         </h1>
         
-        {/* Input Duo */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-center">
           <input 
             className="bg-zinc-900 border border-zinc-800 px-6 py-3 rounded-2xl outline-none focus:border-emerald-500 transition-all text-sm w-64 text-white"
             placeholder="User One"
@@ -66,7 +65,7 @@ const Compare = () => {
             disabled={loading}
             className="bg-white text-black px-8 py-3 rounded-2xl font-black text-xs hover:bg-emerald-500 hover:text-white transition-all ml-4 disabled:opacity-50"
           >
-            {loading ? "ANALYZING..." : "BATTLE"}
+            {loading ? "ANALYZING..." : "COMPARE"}
           </button>
         </div>
       </div>
@@ -74,10 +73,8 @@ const Compare = () => {
       {data1 && data2 && (
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* User 1 Column */}
           <UserBrief data={data1} align="right" />
 
-          {/* Comparison Stats */}
           <div className="space-y-3 py-4">
             <CompRow 
               label="Git Score" 
@@ -119,8 +116,7 @@ const Compare = () => {
             />
           </div>
 
-          {/* User 2 Column */}
-          <UserBrief data={data2} align="left" />
+                <UserBrief data={data2} align="left" />
         </div>
       )}
     </div>
@@ -158,7 +154,7 @@ const CompRow = ({ label, val1, val2, winner, suffix = "" }) => (
         {val2}{suffix}
       </span>
     </div>
-    {/* Victory Glow Indicator */}
+
     {winner !== 'draw' && (
         <div className={`absolute top-0 bottom-0 w-1 transition-all duration-500 ${winner === 'left' ? 'left-0 bg-emerald-500' : 'right-0 bg-emerald-500'}`} />
     )}
