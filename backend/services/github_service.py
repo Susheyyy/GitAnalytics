@@ -5,31 +5,51 @@ from datetime import datetime, timedelta, timezone
 
 GITHUB_BASE_URL = "https://api.github.com"
 
-def calculate_streak(df):
-    """Calculates consecutive days of push activity."""
-    if df.empty:
-        return 0
-    
-    # Extract unique dates from the 'pushed_at' column
-    df['push_date'] = pd.to_datetime(df['pushed_at']).dt.date
-    push_dates = sorted(df['push_date'].unique(), reverse=True)
-    
-    current_streak = 0
-    today = datetime.now(timezone.utc).date()
-    yesterday = today - timedelta(days=1)
-    
-    # If the last push wasn't today or yesterday, the streak is broken
-    if not push_dates or (push_dates[0] != today and push_dates[0] != yesterday):
-        return 0
+def fetch_github_activity_streak(username, session):
+    """
+    Fetches the user's recent public events to calculate an authentic 
+    activity streak that matches the GitHub contribution heatmap.
+    """
+    try:
+        # Fetch up to 100 recent public events (Pushes, PRs, Issues, etc.)
+        events_url = f"{GITHUB_BASE_URL}/users/{username}/events/public?per_page=100"
+        res = session.get(events_url, timeout=10)
+        events = res.json() if res.status_code == 200 else []
         
-    current_streak = 1
-    for i in range(len(push_dates) - 1):
-        if (push_dates[i] - push_dates[i+1]).days == 1:
-            current_streak += 1
-        else:
-            break
+        if not events or not isinstance(events, list):
+            return 0
+
+        # Extract unique dates in UTC
+        event_dates = []
+        for event in events:
+            date_str = event.get('created_at')
+            if date_str:
+                # Convert ISO string to UTC date to avoid timezone drifting
+                date_obj = pd.to_datetime(date_str).tz_convert('UTC').date()
+                event_dates.append(date_obj)
+        
+        # Sort unique dates from newest to oldest
+        push_dates = sorted(list(set(event_dates)), reverse=True)
+        
+        now_utc = datetime.now(timezone.utc).date()
+        yesterday_utc = now_utc - timedelta(days=1)
+        
+        # If no activity today or yesterday, streak is broken
+        if not push_dates or (push_dates[0] < yesterday_utc):
+            return 0
             
-    return current_streak
+        streak = 1
+        for i in range(len(push_dates) - 1):
+            # Check for a 1-day gap between consecutive activities
+            if (push_dates[i] - push_dates[i+1]).days == 1:
+                streak += 1
+            else:
+                break
+                
+        return streak
+    except Exception as e:
+        print(f"Error calculating activity streak: {e}")
+        return 0
 
 def fetch_github_profile(username):
     token = os.getenv("GITHUB_TOKEN", "").strip()
@@ -44,38 +64,62 @@ def fetch_github_profile(username):
             return None
         user_data = user_res.json()
 
-        # 2. GET REPOS SORTED BY PUSH (Authentic activity source)
+        # 2. Get Heatmap-Accurate Streak
+        streak_count = fetch_github_activity_streak(username, session)
+
+        # 3. Get Repositories for Stats and Scoring
         repos_res = session.get(f"{GITHUB_BASE_URL}/users/{username}/repos?per_page=100&sort=pushed", timeout=10)
         repos_data = repos_res.json() if repos_res.status_code == 200 else []
         
         df = pd.DataFrame(repos_data)
         last_active_iso = None
+        top_lang = "Misc"
         
-        # 3. EXTRACT AUTHENTIC LAST PUSH & CLEAN DATA
         if not df.empty:
-            # Set REAL Last Seen data
+            # Standardize activity dates
             df['pushed_at_dt'] = pd.to_datetime(df['pushed_at']).dt.tz_convert('UTC')
-            last_push_dt = df['pushed_at_dt'].max()
-            last_active_iso = last_push_dt.isoformat()
+            last_active_iso = df['pushed_at_dt'].max().isoformat()
             
-            # Fill NaNs for JSON stability
+            # --- ROBUST TOP LANGUAGE LOGIC ---
+            all_langs = df['language'].dropna()
+            filtered_langs = all_langs[all_langs.str.lower() != 'misc']
+            if not filtered_langs.empty:
+                top_lang = filtered_langs.value_counts().idxmax()
+            elif not all_langs.empty:
+                top_lang = all_langs.value_counts().idxmax()
+            
+            # --- REPO-LEVEL DEEP DIVE FOR SCORING (Sample top 5) ---
+            top_repos = df.sort_values(by='stargazers_count', ascending=False).head(5)
+            total_prs = 0
+            for _, row in top_repos.iterrows():
+                try:
+                    pr_res = session.get(f"{GITHUB_BASE_URL}/repos/{username}/{row['name']}/pulls?state=all&per_page=1", timeout=5)
+                    if pr_res.status_code == 200:
+                        if "last" in pr_res.links:
+                            total_prs += int(pr_res.links["last"]["url"].split("&page=")[-1])
+                        else:
+                            total_prs += len(pr_res.json())
+                except: continue
+
+            # Data Cleaning for JSON stability
             df = df.where(pd.notnull(df), None) 
             df['language'] = df['language'].fillna('Misc')
             df['description'] = df['description'].fillna('No description provided.')
             df['stargazers_count'] = df['stargazers_count'].fillna(0).astype(int)
         else:
-            last_active_iso = user_data.get('updated_at') # Fallback to profile edit date
-            
+            last_active_iso = user_data.get('updated_at')
+            top_lang = "None"
+            total_prs = 0
+
     except Exception as e:
         print(f"Error fetching profile: {e}")
         return None
 
+    # --- PROFESSIONAL AUDIT SCORING ---
     all_projects = []
-    audit = {"doc": 0, "consistency": 0, "diversity": 0, "impact": 0}
-    git_score = 0
-
+    audit = {"doc": 0, "consistency": 0, "diversity": 0, "impact": 0, "security": 0}
+    
     if not df.empty:
-        # Projects list for the UI
         for _, row in df.iterrows():
             all_projects.append({
                 "name": row.get('name'),
@@ -86,14 +130,13 @@ def fetch_github_profile(username):
                 "last_update": f"Pushed on {str(row.get('pushed_at', ''))[:10]}"
             })
 
-        # Scoring Logic
         repo_count = len(df)
         total_stars = int(df['stargazers_count'].sum())
+        followers = user_data.get('followers', 0)
         
-        # Pillar 1: Documentation (35 pts)
         doc_count = df[df['description'] != 'No description provided.'].shape[0]
         audit["doc"] = int((doc_count / repo_count) * 35)
-        
+
         # Pillar 2: Consistency (based on unique months active)
         one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
         # Use UTC version of pushed_at for comparison
@@ -101,10 +144,13 @@ def fetch_github_profile(username):
         if not recent.empty:
             unique_months = recent['pushed_at_dt'].dt.to_period('M').nunique()
             audit["consistency"] = min(30, int((unique_months / 6) * 30))
-        
+
         audit["diversity"] = min(20, df['language'].nunique() * 5)
         audit["impact"] = min(15, int((total_stars / repo_count) * 5) if repo_count > 0 else 0)
+        
         git_score = sum(audit.values())
+    else:
+        git_score = 0
 
     return {
         "profile": {
@@ -114,8 +160,9 @@ def fetch_github_profile(username):
             "bio": user_data.get('bio', ""),
             "followers": user_data.get('followers', 0),
             "joined_at": user_data.get('created_at'),
-            "last_active": last_active_iso, # REAL Push Data
-            "streak": calculate_streak(df)  # Dynamic Streak
+            "last_active": last_active_iso, 
+            "streak": streak_count,
+            "top_lang": top_lang
         },
         "stats": {
             "repo_count": len(df) if not df.empty else 0,
@@ -128,7 +175,7 @@ def fetch_github_profile(username):
     }
 
 def fetch_repo_details(username, repo_name):
-    """Fetches metadata for the modal deep-dive."""
+    """Deep-dive metadata for the Project Modal."""
     token = os.getenv("GITHUB_TOKEN", "").strip()
     headers = {"Authorization": f"token {token}"} if token else {}
     session = requests.Session()
@@ -136,19 +183,24 @@ def fetch_repo_details(username, repo_name):
     base_url = f"{GITHUB_BASE_URL}/repos/{username}/{repo_name}"
 
     try:
-        res = session.get(base_url, timeout=5)
+        res = session.get(base_url, timeout=10)
         if res.status_code != 200: return None
         data = res.json()
         
-        readme_res = session.get(f"{base_url}/contents/README.md", timeout=3)
-        commits_res = session.get(f"{base_url}/commits?per_page=1", timeout=3)
-        branches_res = session.get(f"{base_url}/branches?per_page=1", timeout=3)
-        contribs_res = session.get(f"{base_url}/contributors?per_page=1", timeout=3)
+        # Parallel stats fetching
+        readme_res = session.get(f"{base_url}/contents/README.md", timeout=5)
+        commits_res = session.get(f"{base_url}/commits?per_page=1", timeout=5)
+        branches_res = session.get(f"{base_url}/branches?per_page=1", timeout=5)
+        contribs_res = session.get(f"{base_url}/contributors?per_page=1", timeout=5)
+        pr_res = session.get(f"{base_url}/pulls?state=all&per_page=1", timeout=5)
 
         def get_total_from_link(response):
             if "last" in response.links:
-                return response.links["last"]["url"].split("&page=")[-1]
-            return len(response.json()) if response.status_code == 200 else 0
+                return int(response.links["last"]["url"].split("&page=")[-1])
+            try:
+                content = response.json()
+                return len(content) if isinstance(content, list) else 0
+            except: return 0
 
         return {
             "name": repo_name,
@@ -161,7 +213,8 @@ def fetch_repo_details(username, repo_name):
             "stats": {
                 "commits": get_total_from_link(commits_res),
                 "branches": get_total_from_link(branches_res),
-                "contributors": get_total_from_link(contribs_res)
+                "contributors": get_total_from_link(contribs_res),
+                "pull_requests": get_total_from_link(pr_res)
             }
         }
     except Exception as e:
@@ -169,11 +222,11 @@ def fetch_repo_details(username, repo_name):
         return None
 
 def get_repo_fingerprint(username, repo_name):
-    """Lists files for AI context."""
+    """Context for AI analysis."""
     token = os.getenv("GITHUB_TOKEN", "").strip()
     headers = {"Authorization": f"token {token}"} if token else {}
     try:
         res = requests.get(f"{GITHUB_BASE_URL}/repos/{username}/{repo_name}/contents", headers=headers, timeout=5)
         files = [f['name'] for f in res.json()] if res.status_code == 200 else []
         return {"files": files[:15]}
-    except Exception: return {"files": []}
+    except: return {"files": []}
