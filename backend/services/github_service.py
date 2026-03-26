@@ -1,9 +1,35 @@
 import requests
 import pandas as pd
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 GITHUB_BASE_URL = "https://api.github.com"
+
+def calculate_streak(df):
+    """Calculates consecutive days of push activity."""
+    if df.empty:
+        return 0
+    
+    # Extract unique dates from the 'pushed_at' column
+    df['push_date'] = pd.to_datetime(df['pushed_at']).dt.date
+    push_dates = sorted(df['push_date'].unique(), reverse=True)
+    
+    current_streak = 0
+    today = datetime.now(timezone.utc).date()
+    yesterday = today - timedelta(days=1)
+    
+    # If the last push wasn't today or yesterday, the streak is broken
+    if not push_dates or (push_dates[0] != today and push_dates[0] != yesterday):
+        return 0
+        
+    current_streak = 1
+    for i in range(len(push_dates) - 1):
+        if (push_dates[i] - push_dates[i+1]).days == 1:
+            current_streak += 1
+        else:
+            break
+            
+    return current_streak
 
 def fetch_github_profile(username):
     token = os.getenv("GITHUB_TOKEN", "").strip()
@@ -12,22 +38,34 @@ def fetch_github_profile(username):
     session.headers.update(headers)
 
     try:
-        user_res = session.get(f"{GITHUB_BASE_URL}/users/{username}", timeout=5)
+        # 1. Get Profile Info
+        user_res = session.get(f"{GITHUB_BASE_URL}/users/{username}", timeout=10)
         if user_res.status_code != 200:
             return None
         user_data = user_res.json()
 
-        repos_res = session.get(f"{GITHUB_BASE_URL}/users/{username}/repos?per_page=100&sort=pushed", timeout=5)
+        # 2. GET REPOS SORTED BY PUSH (Authentic activity source)
+        repos_res = session.get(f"{GITHUB_BASE_URL}/users/{username}/repos?per_page=100&sort=pushed", timeout=10)
         repos_data = repos_res.json() if repos_res.status_code == 200 else []
         
         df = pd.DataFrame(repos_data)
+        last_active_iso = None
         
-        # CRITICAL FIX: Replace NaN with None (becomes null in JSON) or empty defaults
+        # 3. EXTRACT AUTHENTIC LAST PUSH & CLEAN DATA
         if not df.empty:
+            # Set REAL Last Seen data
+            df['pushed_at_dt'] = pd.to_datetime(df['pushed_at']).dt.tz_convert('UTC')
+            last_push_dt = df['pushed_at_dt'].max()
+            last_active_iso = last_push_dt.isoformat()
+            
+            # Fill NaNs for JSON stability
             df = df.where(pd.notnull(df), None) 
             df['language'] = df['language'].fillna('Misc')
             df['description'] = df['description'].fillna('No description provided.')
             df['stargazers_count'] = df['stargazers_count'].fillna(0).astype(int)
+        else:
+            last_active_iso = user_data.get('updated_at') # Fallback to profile edit date
+            
     except Exception as e:
         print(f"Error fetching profile: {e}")
         return None
@@ -45,10 +83,10 @@ def fetch_github_profile(username):
                 "stars": int(row.get('stargazers_count', 0)),
                 "language": row.get('language'),
                 "url": row.get('html_url', '#'),
-                "last_update": f"Pushed on {row.get('pushed_at', '')[:10]}"
+                "last_update": f"Pushed on {str(row.get('pushed_at', ''))[:10]}"
             })
 
-        # Basic Scoring Logic
+        # Scoring Logic
         repo_count = len(df)
         total_stars = int(df['stargazers_count'].sum())
         
@@ -56,16 +94,16 @@ def fetch_github_profile(username):
         doc_count = df[df['description'] != 'No description provided.'].shape[0]
         audit["doc"] = int((doc_count / repo_count) * 35)
         
-        # Pillar 2: Consistency
-        df['pushed_at_dt'] = pd.to_datetime(df['pushed_at']).dt.tz_localize(None)
-        one_year_ago = datetime.now() - timedelta(days=365)
-        recent = df[df['pushed_at_dt'] > one_year_ago]
+        # Pillar 2: Consistency (based on unique months active)
+        one_year_ago = datetime.now(timezone.utc) - timedelta(days=365)
+        # Use UTC version of pushed_at for comparison
+        recent = df[df['pushed_at_dt'].dt.tz_localize(None) > one_year_ago.replace(tzinfo=None)]
         if not recent.empty:
             unique_months = recent['pushed_at_dt'].dt.to_period('M').nunique()
             audit["consistency"] = min(30, int((unique_months / 6) * 30))
         
         audit["diversity"] = min(20, df['language'].nunique() * 5)
-        audit["impact"] = min(15, int((total_stars / repo_count) * 5))
+        audit["impact"] = min(15, int((total_stars / repo_count) * 5) if repo_count > 0 else 0)
         git_score = sum(audit.values())
 
     return {
@@ -76,7 +114,8 @@ def fetch_github_profile(username):
             "bio": user_data.get('bio', ""),
             "followers": user_data.get('followers', 0),
             "joined_at": user_data.get('created_at'),
-            "last_active": user_data.get('updated_at')
+            "last_active": last_active_iso, # REAL Push Data
+            "streak": calculate_streak(df)  # Dynamic Streak
         },
         "stats": {
             "repo_count": len(df) if not df.empty else 0,
@@ -87,10 +126,9 @@ def fetch_github_profile(username):
             "all_projects": all_projects
         }
     }
+
 def fetch_repo_details(username, repo_name):
-    """
-    Fetches comprehensive metadata, including real stats for the modal.
-    """
+    """Fetches metadata for the modal deep-dive."""
     token = os.getenv("GITHUB_TOKEN", "").strip()
     headers = {"Authorization": f"token {token}"} if token else {}
     session = requests.Session()
@@ -98,23 +136,17 @@ def fetch_repo_details(username, repo_name):
     base_url = f"{GITHUB_BASE_URL}/repos/{username}/{repo_name}"
 
     try:
-        # 1. Basic Repo Metadata
         res = session.get(base_url, timeout=5)
         if res.status_code != 200: return None
         data = res.json()
         
-        # 2. Check for README
         readme_res = session.get(f"{base_url}/contents/README.md", timeout=3)
-        
-        # 3. Fetch Real Stats (Commits, Branches, Contributors)
-        # Note: We use per_page=1 and check the 'Link' header for total counts to save API quota
         commits_res = session.get(f"{base_url}/commits?per_page=1", timeout=3)
         branches_res = session.get(f"{base_url}/branches?per_page=1", timeout=3)
         contribs_res = session.get(f"{base_url}/contributors?per_page=1", timeout=3)
 
         def get_total_from_link(response):
             if "last" in response.links:
-                # The 'last' relation link contains the total page count
                 return response.links["last"]["url"].split("&page=")[-1]
             return len(response.json()) if response.status_code == 200 else 0
 

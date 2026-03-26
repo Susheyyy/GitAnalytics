@@ -10,12 +10,19 @@ import {
 const COLORS = ['#10b981', '#8b5cf6', '#f59e0b', '#f43f5e', '#06b6d4'];
 
 const formatTimeAgo = (dateString) => {
-  if (!dateString) return "Unknown";
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  return `${Math.floor(diffInSeconds / 86400)}d ago`;
+if (!dateString) return "UNKNOWN";
+  
+  // Parse the UTC string from backend
+  const lastActive = new Date(dateString);
+  const now = new Date(); // March 2026
+  
+  const diffInMs = now.getTime() - lastActive.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays < 1) return " TODAY";
+  if (diffInDays === 1) return " YESTERDAY";
+  
+  return `${diffInDays}D AGO`;
 };
 
 const SummaryLine = ({ label, weight, user }) => (
